@@ -1,13 +1,26 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/themeToggle";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import Image from "next/image";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-export default async function Home() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+export default function Home() {
+  const { data: session } = authClient.useSession();
+  const router = useRouter();
+
+  async function signOut() {
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/login"); // redirect to login page
+          // redirect("/login"); --> this does not work in client components, this will work only in server components
+          toast.success("Signed out successfully");
+        },
+      },
+    });
+  }
 
   return (
     <>
@@ -19,11 +32,12 @@ export default async function Home() {
           <p className="my-2">User ID: {session.user.id}</p>
           <p className="my-2">Name: {session.user.name}</p>
           <p className="my-2">Email: {session.user.email}</p>
+          <Button variant="destructive" onClick={() => signOut()}>
+            Sign out
+          </Button>
         </div>
       ) : (
-        <Button>
-          Login
-        </Button>
+        <Button>Login</Button>
       )}
     </>
   );
