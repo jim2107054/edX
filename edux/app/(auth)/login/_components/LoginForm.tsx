@@ -10,15 +10,19 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SelectSeparator } from "@/components/ui/select";
-import { Github, icons, Loader } from "lucide-react";
-import React, { useTransition } from "react";
+import { Github, icons, Loader, Loader2, Send } from "lucide-react";
+import React, { useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
-export function LoginForm(){
+export function LoginForm() {
+  const router = useRouter();
 
-      const [githubPending, startGithubTransition] = useTransition();
+  const [githubPending, startGithubTransition] = useTransition();
+  const [emailPending, startEmailTransition] = useTransition();
+  const [email, setEmail] = useState("");
 
   async function signInWithGithub() {
     startGithubTransition(async () => {
@@ -43,7 +47,27 @@ export function LoginForm(){
     });
   }
 
-    return (
+  function signInWithEmail() {
+    startEmailTransition(async () => {
+      await authClient.emailOtp.sendVerificationOtp({
+        email: email,
+        type: "sign-in",
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("Verification email sent");
+            router.push(`/verify-request?email=${email}`);
+          },
+          onError: (e) => {
+            toast.error(
+              e instanceof Error ? e.message : "Something went wrong"
+            );
+          },
+        },
+      });
+    });
+  }
+
+  return (
     <Card className="px-4">
       <CardHeader>
         <CardTitle className="text-xl">Welcome back!</CardTitle>
@@ -60,8 +84,8 @@ export function LoginForm(){
         >
           {githubPending ? (
             <>
-            <Loader className="size-5 animate-spin" />
-            <span>Loading....</span>
+              <Loader className="size-5 animate-spin" />
+              <span>Loading....</span>
             </>
           ) : (
             <>
@@ -80,9 +104,30 @@ export function LoginForm(){
             <Label htmlFor="email" className="mb-1 mt-4">
               Email
             </Label>
-            <Input id="email" type="email" placeholder="jim@example.com" />
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              id="email"
+              type="email"
+              placeholder="jim@example.com"
+              required
+            />
           </div>
-          <Button className="w-full">Continue with Email</Button>
+          <Button onClick={signInWithEmail} disabled={emailPending} className="w-full cursor-pointer">
+            {
+              emailPending ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  <span>Loading....</span>
+                </>
+              ): (
+                <>
+                  <Send className="size-4" />
+                  <span>Continue with Email</span>
+                </>
+              )
+            }
+          </Button>
         </div>
         {/* <SelectSeparator className="my-4" /> */}
       </CardContent>
